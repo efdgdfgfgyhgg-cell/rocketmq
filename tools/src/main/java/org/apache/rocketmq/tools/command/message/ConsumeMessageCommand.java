@@ -214,10 +214,11 @@ public class ConsumeMessageCommand implements SubCommand {
 
     private void pullMessageByQueue(MessageQueue mq, long minOffset, long maxOffset) {
         READQ:
-        for (long offset = minOffset; offset <= maxOffset; ) {
+        for (long offset = minOffset; offset < maxOffset; ) {
             PullResult pullResult = null;
             try {
-                pullResult = defaultMQPullConsumer.pull(mq, "*", offset, (int)(maxOffset - offset + 1));
+                pullResult = defaultMQPullConsumer.pull(mq, "*", offset,
+                    (int) Math.min(maxOffset - offset, Integer.MAX_VALUE));
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -264,10 +265,10 @@ public class ConsumeMessageCommand implements SubCommand {
                 }
                 if (maxOffset - minOffset > countLeft) {
                     System.out.printf("The older %d message of the %d queue will be provided\n", countLeft, mq.getQueueId());
-                    maxOffset = minOffset + countLeft - 1;
+                    maxOffset = minOffset + countLeft;
                     countLeft = 0;
                 } else {
-                    countLeft = countLeft - (maxOffset - minOffset) - 1;
+                    countLeft -= maxOffset - minOffset;
                 }
 
                 pullMessageByQueue(mq, minOffset, maxOffset);
@@ -295,7 +296,7 @@ public class ConsumeMessageCommand implements SubCommand {
             minOffset = minOffset > offset ? minOffset : offset;
             if (maxOffset - minOffset > messageCount) {
                 System.out.printf("The oldler %d message will be provided\n", messageCount);
-                maxOffset = minOffset + messageCount - 1;
+                maxOffset = minOffset + messageCount;
             }
 
             pullMessageByQueue(mq, minOffset, maxOffset);
